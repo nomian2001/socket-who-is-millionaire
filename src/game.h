@@ -15,8 +15,7 @@
 #define MILLIONAIREGAME_GAME_H
 
 
-
-struct Game {
+typedef struct {
 
 /**
      * Game constructor will create the new game for each client
@@ -37,27 +36,26 @@ struct Game {
     /* Server reads the values from the socket connection to the dynamic variable*/
     char buffer_[1024];
 
-    /*Vector Collection to store the questions*/
-    static vector<std::string> questions_;
+    /*Collection to store the questions*/
+     char** questions_;
 
-    /*Vector Collection to sstore the options to the questions*/
-    static vector<std::string> options_;
+    /*Collection to sstore the options to the questions*/
+     char** options_;
+     
+    /*Collection to store the correct answers to the questions*/
+     char** correct_answers_;
 
-    /*Vector Collection to store the correct answers to the questions*/
-    static vector<std::string> correct_answers_;
-
-    /*Vector Collection to store the prize money to the questions*/
-    static vector<std::string> prize_money_;
-
-
-};
+    /*Collection to store the prize money to the questions*/
+     char** prize_money_;
 
 
-Game(char* player,int server);
+}Game;
 
-void play_game();
+Game* new_game(char player,int server);
 
-static void initialize_game();
+void play_game(Game* game);
+
+static void initialize_game(Game* game);
 
 
 #endif //MILLIONAIREGAME_GAME_H
