@@ -12,9 +12,49 @@
 #include "server.h"
 
 // Global variables
-int server_sockfd = 0, client_sockfd = 0, client_number = 0;
+int server_sockfd = 0, client_sockfd = 0, client_number = 0, start_number = 0;
 ClientList *root, *now;
+QuestionNode* rootQuestion;
 
+// Game function
+void initialize_game()
+{
+//1
+int idx1 = 1;
+char question1[LENGTH_SEND] = "1. Declaring a pointer more than once may cause __";
+char option1[LENGTH_SEND] = "1.Error ,2.Abort ,3.Trap ,4.Null ";
+char correct_answer1[LENGTH_SEND] = "3.Trap ";
+//1
+int idx2 = 2;
+char question2[LENGTH_SEND] = "2. An expression A.B in C++ means __";
+char option2[LENGTH_SEND] = "1.A is member of object B ,2.B is member of Object A ,3.Product of A and B ,4.None of these ";
+char correct_answer2[LENGTH_SEND] = "2.B is member of Object A ";
+//1
+int idx3 = 3;
+char question3[LENGTH_SEND] = "3. __ function is used to allocate space for array in memory.";
+char option3[LENGTH_SEND] = "1.malloc() ,2.realloc() ,3.alloc() ,4.calloc() ";
+char correct_answer3[LENGTH_SEND] = "4.calloc() ";
+//1
+int idx4 = 4;
+char question4[LENGTH_SEND] = "4. A pointer pointing to a variable that is not initialized is called __";
+char option4[LENGTH_SEND] = "1.Void Pointer ,2.Null Pointer ,3.Empty Pointer ,4.Wild Pointer ";
+char correct_answer4[LENGTH_SEND] = "2.Null Pointer ";
+
+
+
+QuestionNode *np1 = newQuestionNode(idx1,question1,option1,correct_answer1);
+QuestionNode *np2 = newQuestionNode(idx2,question2,option2,correct_answer2);
+QuestionNode *np3 = newQuestionNode(idx3,question3,option3,correct_answer3);
+QuestionNode *np4 = newQuestionNode(idx4,question4,option4,correct_answer4);
+rootQuestion = np1;
+
+np1->link = np2;
+np2->link = np3;
+np3->link = np4;
+
+}
+
+// 
 void catch_ctrl_c_and_exit(int sig) {
     ClientList *tmp;
     while (root != NULL) {
@@ -39,24 +79,48 @@ void send_to_all_clients(ClientList *np, char tmp_buffer[]) {
     }
 }
 
+//check nickname is exist or not 
+int checkNicknameExist(char* nickname )
+{
+      ClientList *tmp = root->link;
+    while (tmp != NULL) {
+        if(strcmp(tmp->name,nickname)==0)
+            return 1;
+        tmp = tmp->link;
+    }
+    return 0;
+}
+
+// play game
+void play_game( ClientList *player, QuestionNode * question)
+{
+
+ send(player->data, question->question, LENGTH_SEND, 0);
+
+return;
+}
+
+//
+
 void client_handler(void *p_client) {
     int leave_flag = 0;
     char nickname[LENGTH_NAME] = {};
     char recv_buffer[LENGTH_MSG] = {};
     char send_buffer[LENGTH_SEND] = {};
     ClientList *np = (ClientList *)p_client;
+    ++client_number;
 
-    // Naming
-    if (recv(np->data, nickname, LENGTH_NAME, 0) <= 0 || strlen(nickname) < 2 || strlen(nickname) >= LENGTH_NAME-1) {
-        printf("%s didn't input name.\n", np->ip);
+    // Check nickname is exist or not 
+    if (recv(np->data, nickname, LENGTH_NAME, 0) <= 0 || checkNicknameExist(nickname)) {
+        send(np->data, "EXIT", LENGTH_SEND, 0);
         leave_flag = 1;
     } else {
         strncpy(np->name, nickname, LENGTH_NAME);
-        printf("[%s][%s:%d](%d) join the chatroom.\n", np->name, np->ip,np->port, np->data);
-        sprintf(send_buffer, "[%s][%s:%d](%d) join the chatroom.\n", np->name, np->ip,np->port, np->data);
-        send_to_all_clients(np, send_buffer);
-        ++client_number;
+        printf("[%s][%s:%d](%d) join the chatroom.", np->name, np->ip,np->port, np->data);
+        sprintf(send_buffer, "[%s][%s:%d](%d) join the chatroom.", np->name, np->ip,np->port, np->data);
+        //send_to_all_clients(np, send_buffer);
         printf("Number Of Player: %d\n",client_number);
+       
     }
 
     // Conversation
@@ -69,17 +133,25 @@ void client_handler(void *p_client) {
             if (strlen(recv_buffer) == 0) {
                 continue;
             }
+
             sprintf(send_buffer, "[%s]: %s [%s:%d]", np->name, recv_buffer, np->ip,np->port);
         } else if (receive == 0 || strcmp(recv_buffer, "exit") == 0) {
             printf("[%s][%s:%d](%d) left the chatroom.\n", np->name, np->ip,np->port, np->data);
             sprintf(send_buffer, "[%s][%s:%d](%d) left the chatroom.\n", np->name, np->ip,np->port, np->data);
             leave_flag = 1;
-        } else {
+        } else if(strcmp(recv_buffer, "game start") == 0)
+        {
+            ++start_number;
+        }
+        else {
             printf("Fatal Error: -1\n");
             leave_flag = 1;
         }
-        send_to_all_clients(np, send_buffer);
+        //send_to_all_clients(np, send_buffer);
+        printf("%s\n",send_buffer);
+
     }
+
 
     // Remove Node
     close(np->data);
@@ -91,6 +163,7 @@ void client_handler(void *p_client) {
         np->link->prev = np->prev;
     }
     free(np);
+    --client_number;
 }
 
 int main()
@@ -125,7 +198,8 @@ int main()
     // Initial linked list for clients
     root = newNode(server_sockfd, inet_ntoa(server_info.sin_addr),ntohs(server_info.sin_port));
     now = root;
-
+    
+    initialize_game();
     while (1) {
         client_sockfd = accept(server_sockfd, (struct sockaddr*) &client_info, (socklen_t*) &c_addrlen);
 
@@ -144,6 +218,7 @@ int main()
             perror("Create pthread error!\n");
             exit(EXIT_FAILURE);
         }
+
     }
 
     return 0;

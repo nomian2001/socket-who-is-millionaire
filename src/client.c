@@ -24,13 +24,15 @@ void recv_msg_handler() {
     char receiveMessage[LENGTH_SEND] = {};
     while (1) {
         int receive = recv(sockfd, receiveMessage, LENGTH_SEND, 0);
-        if (receive > 0) {
+        if (strcmp(receiveMessage,"EXIT")==0) {
+            flag = 1;
+            printf("The nickname is exist, please choose the other one.\n");
+        }
+        else if (receive > 0) {
             printf("\r%s\n", receiveMessage);
             str_overwrite_stdout();
-        } else if (receive == 0) {
-            break;
-        } else { 
-            // -1 
+        } else if  (receive == 0)  { 
+           break; 
         }
     }
 }
@@ -54,21 +56,57 @@ void send_msg_handler() {
     }
     catch_ctrl_c_and_exit(2);
 }
+// check nickname must be composed by the following characters 'a'...'z', 'A'...'Z', '0'...'9', '_' "
+int checkValidWord(char *word)
+{
+    int size = strlen(word);
+    int check =0;
+    for (int i = 0; i < size; ++i)
+    {
+        if ((word[i] >= 'a' && word[i] <= 'z') || (word[i] >= 'A' && word[i] <= 'Z') || (word[i] >= '0' && word[i] <= '9') ||word[i]=='_')
+            ++check;
+    }
+    if(size-1 == check)
+    return 1;
+    return 0;
+}
+// final check in client
+int validateNickName(char * nickname)
+{
+    if (strlen(nickname) < 2 || strlen(nickname) >= LENGTH_NAME-1) {
+        printf("\nName must be more than one and less than thirty characters.\n");
+        return 0;
+    }
+     else if ((strlen(nickname)-1) > 10)
+    {
+        printf("The length of nicknickname is not longer than 10 characters.\n");
+        return 0;
+    }
+    else if (checkValidWord(nickname)==0)
+    {
+        printf("The nicknickname must be composed by the following characters 'a'...'z', 'A'...'Z', '0'...'9', '_' ");
+        return 0;
+    }
+    
+    return 1;
+}
+
 
 int main()
+
 {
     signal(SIGINT, catch_ctrl_c_and_exit);
 
     // Naming
     printf("Please enter your name: ");
-    if (fgets(nickname, LENGTH_NAME, stdin) != NULL) {
+    if ((fgets(nickname, LENGTH_NAME, stdin) != NULL) && (validateNickName(nickname)==1))
+    {
         str_trim_lf(nickname, LENGTH_NAME);
     }
-    if (strlen(nickname) < 2 || strlen(nickname) >= LENGTH_NAME-1) {
-        printf("\nName must be more than one and less than thirty characters.\n");
+    else{
         exit(EXIT_FAILURE);
     }
-
+   
     // Create socket
     sockfd = socket(AF_INET , SOCK_STREAM , 0);
     if (sockfd == -1) {

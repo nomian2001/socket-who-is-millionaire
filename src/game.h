@@ -23,16 +23,11 @@ struct Game {
      * @param player
      * @param server
  */
-/*To track the total number of attempts that the user has*/
-    int attempts_;
-/*To get the prize money for the particular question*/
-    char prize_won_[1000];
+
 
     /*To get and store the player name when new unique game object has been created*/
-    char player_[1000];
+    char player[10];
 
-    /*Unique Server connection number to connect between client and server*/
-    int server_;
 
     /* Server reads the values from the socket connection to the dynamic variable*/
     char buffer_[1024];
